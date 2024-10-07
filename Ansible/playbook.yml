@@ -1,0 +1,56 @@
+---
+- name: Deploy Node.js Application On Nginx Webserver
+  hosts: ec2
+  become: true
+  tasks:
+    - name: Create application directory
+      file:
+        path: /home/ec2-user/todo-app
+        state: directory
+
+    - name: Copy application files
+      copy:
+        src: ./todo-app/
+        dest: /home/ec2-user/todo-app/
+        mode: '0755'
+
+    - name: Install application dependencies
+      npm:
+        path: /home/ec2-user/todo-app
+        state: present
+
+    - name: Set environment variables
+      lineinfile:
+        path: /etc/environment
+        line: "{{ item }}"
+        state: present
+      loop:
+        - "MONGODB_URI=mongodb+srv://eraof2024mongodb:eZLYmDpiKNVTLXbm@cluster-test.4dcgg6v.mongodb.net/?retryWrites=true&w=majority&appName=cluster-test"
+        - "PORT=3000"
+
+    - name: Source the environment variables
+      shell: source /etc/environment
+      args:
+        executable: /bin/bash
+
+    - name: Start the application
+      command: pm2 start /home/ec2-user/todo-app/server.js
+      async: 10
+      poll: 0
+
+    - name: Configure Nginx for Node.js application
+      template:
+        src: ./todo_app.conf.j2
+        dest: /etc/nginx/conf.d/todo_app.conf
+      notify: restart nginx
+
+    - name: Ensure the application is running
+      wait_for:
+        port: 3000
+        delay: 5
+
+  handlers:
+    - name: restart nginx
+      service:
+        name: nginx
+        state: restarted
