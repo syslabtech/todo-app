@@ -2,3 +2,4 @@ Terraform/terraform.tfstate.backup
 todo-app/node_modules
 Terraform/.terraform 
 todo-app/.env
+todo-app/package-lock.json
